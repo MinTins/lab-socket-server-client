@@ -1,2 +1,2 @@
 # lab-socket-server-client
- Computer Network practise lab | Socker server/cleitn
+ Computer Network practise lab | Socker server/client
