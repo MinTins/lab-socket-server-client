@@ -1,6 +1,7 @@
 /*
 Client-server application
 Author: Flakey Roman
+Type: Server
 Var: 18
 Short name: Гра "вгадування 4-значного числа".
 Task: Користувач на клієнті вгадує 4-значне ціле, яке зберігається на сервері.
@@ -32,8 +33,7 @@ Task: Користувач на клієнті вгадує 4-значне ці�
 #pragma comment(lib, "Ws2_32.lib")
 
 #define DEFAULT_PORT 1043
-#define DEFAULT_BUFLEN 1024
-
+#define DEFAULT_BUFLEN 255
 
 SOCKET constructSocket()
 {
@@ -47,7 +47,6 @@ SOCKET constructSocket()
     return sockRtnVal;
 };
 
-
 void socketErrorCheck(int returnValue, SOCKET socketToClose, const char *action)
 {
     const char *actionAttempted = action;
@@ -57,7 +56,6 @@ void socketErrorCheck(int returnValue, SOCKET socketToClose, const char *action)
         closesocket(socketToClose); // WSACleanup(); exit(1);
     };
 }
-
 
 std::string getTimeNow()
 {
@@ -70,24 +68,28 @@ std::string getTimeNow()
     return result;
 };
 
-
-void checkTryCode(short tryCode, short rightCode, char* outStr)
+void checkTryCode(short tryCode, short rightCode, char *outStr)
 {
     int rightNumber = 0, rightPlace = 0;
     unsigned short rightNumberCode[4];
 
-    for (short k = 0; k<4; rightCode=rightCode/10, k++){
-        rightNumberCode[k] = rightCode%10;
+    for (short k = 0; k < 4; rightCode = rightCode / 10, k++)
+    {
+        rightNumberCode[k] = rightCode % 10;
     };
 
-    for (short k = 0; k<4; tryCode=tryCode/10, k++){
-        short currNumb = tryCode%10;
+    for (short k = 0; k < 4; tryCode = tryCode / 10, k++)
+    {
+        short currNumb = tryCode % 10;
 
-        for (short i=0; i<4; i++){
-            if (rightNumberCode[i] == currNumb){
+        for (short i = 0; i < 4; i++)
+        {
+            if (rightNumberCode[i] == currNumb)
+            {
                 rightNumber++;
-                if (k == i){
-                  rightPlace++;
+                if (k == i)
+                {
+                    rightPlace++;
                 };
                 break;
             };
@@ -97,8 +99,15 @@ void checkTryCode(short tryCode, short rightCode, char* outStr)
     std::sprintf(outStr, "tf_%d%d", rightNumber, rightPlace);
 };
 
+bool is_number(const std::string &s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it))
+        ++it;
+    return !s.empty() && it == s.end();
+};
 
-int sendMessage(SOCKET &s, const char *sendbuf, std::ofstream &logfile)
+int sendMessage(SOCKET &s, const char *sendbuf, std::ofstream& logfile)
 {
     int sendResult;
 
@@ -110,8 +119,7 @@ int sendMessage(SOCKET &s, const char *sendbuf, std::ofstream &logfile)
     return sendResult;
 };
 
-
-void commandController(SOCKET &s, char* clientText, std::unordered_map<SOCKET, short[2]>& socketToUserMap, std::ofstream& logfile)
+void commandController(SOCKET &s, char *clientText, std::unordered_map<SOCKET, short[2]> &socketToUserMap, std::ofstream &logfile)
 {
     /*
     STATUS CODE:
@@ -135,13 +143,14 @@ void commandController(SOCKET &s, char* clientText, std::unordered_map<SOCKET, s
         ws-fn - win success / finished game
         tf_## - try fail / # - number of right / # - in right place
         tf_l - try fail / limit
+        cc_#### - curent code (get)
+        unxp_cm - unexpected command
     */
 
     int sendbufsize = DEFAULT_BUFLEN;
     char sendbuf[sendbufsize] = "";
 
     std::string recvString(clientText);
-    std::cout << recvString << std::endl;
     if (recvString == "Who")
     {
         strncpy(sendbuf, "Flakey Roman k-23, var 18. \"Guess the 4-number\"", sendbufsize);
@@ -150,33 +159,29 @@ void commandController(SOCKET &s, char* clientText, std::unordered_map<SOCKET, s
 
     else if (recvString == "s")
     {
-            if (socketToUserMap[s][0] > 0)
+        if (socketToUserMap[s][0] > 0)
+        {
+            int randomNumber = (rand() % 9000) + 1000;
+            socketToUserMap[s][1] = randomNumber;
+
+            if (socketToUserMap[s][0] == 1)
             {
-                int randomNumber = (rand() % 9000) + 1000;
-                socketToUserMap[s][1] = randomNumber;
-
-                if (socketToUserMap[s][0] == 1){
-                    socketToUserMap[s][0] = 2;
-                    strncpy(sendbuf, "gn-s", sendbufsize);
-                }
-                else{
-                    strncpy(sendbuf, "gn-r", sendbufsize);
-                };
-
+                socketToUserMap[s][0] = 2;
+                strncpy(sendbuf, "gn-s", sendbufsize);
             }
             else
             {
-                strncpy(sendbuf, "f", sendbufsize);
+                strncpy(sendbuf, "gn-r", sendbufsize);
             };
-            sendMessage(s, sendbuf, logfile);
-    }
-    else if (recvString == "get"){
-        std::string tempMsg("Cur_code_" + std::to_string(socketToUserMap[s][0]));
-        strncpy(sendbuf, tempMsg.c_str(), sendbufsize);
+        }
+        else
+        {
+            strncpy(sendbuf, "f", sendbufsize);
+        };
         sendMessage(s, sendbuf, logfile);
     }
 
-    else if(recvString == "fn")
+    else if (recvString == "fn")
     {
         if (socketToUserMap[s][0] == 2)
         {
@@ -184,7 +189,9 @@ void commandController(SOCKET &s, char* clientText, std::unordered_map<SOCKET, s
             socketToUserMap[s][1] = 0;
             strncpy(sendbuf, "fn-s", sendbufsize);
         }
-        else {strncpy(sendbuf, "f", sendbufsize);
+        else
+        {
+            strncpy(sendbuf, "f", sendbufsize);
         };
         sendMessage(s, sendbuf, logfile);
     }
@@ -198,7 +205,9 @@ void commandController(SOCKET &s, char* clientText, std::unordered_map<SOCKET, s
             socketToUserMap[s][0] = 1;
             socketToUserMap[s][1] = 0;
         }
-        else {strncpy(sendbuf, "f", sendbufsize);
+        else
+        {
+            strncpy(sendbuf, "f", sendbufsize);
         };
         sendMessage(s, sendbuf, logfile);
     }
@@ -206,10 +215,11 @@ void commandController(SOCKET &s, char* clientText, std::unordered_map<SOCKET, s
     else if (recvString.rfind("t_", 0) == 0)
     {
 
-        if (socketToUserMap[s][0] == 2 && recvString.length() == 6)
+        if (socketToUserMap[s][0] == 2 && recvString.length() == 6 && is_number(recvString.substr(2, 4)))
         {
             int tryCode = stoi(recvString.substr(2, 4));
-            if (tryCode >= 1000 && tryCode <= 9999){
+            if (tryCode >= 1000 && tryCode <= 9999)
+            {
                 if (tryCode == socketToUserMap[s][1])
                 {
                     strncpy(sendbuf, "ws-fn", sendbufsize);
@@ -220,19 +230,21 @@ void commandController(SOCKET &s, char* clientText, std::unordered_map<SOCKET, s
                 }
                 else
                 {
-                    char resultCheck[5];
+                    char resultCheck[6];
                     checkTryCode(tryCode, socketToUserMap[s][1], resultCheck);
 
                     strncpy(sendbuf, resultCheck, sendbufsize);
                     sendMessage(s, sendbuf, logfile);
                 };
             }
-            else {
+            else
+            {
                 strncpy(sendbuf, "tf_l", sendbufsize);
                 sendMessage(s, sendbuf, logfile);
             };
         }
-        else{
+        else
+        {
             strncpy(sendbuf, "f", sendbufsize);
             sendMessage(s, sendbuf, logfile);
         };
@@ -240,13 +252,12 @@ void commandController(SOCKET &s, char* clientText, std::unordered_map<SOCKET, s
 
     else
     {
-        strncpy(sendbuf, "Unexpected command.", sendbufsize);
+        strncpy(sendbuf, "unxp_cm", sendbufsize);
         sendMessage(s, sendbuf, logfile);
     };
 
     std::string().swap(recvString);
 };
-
 
 int main(void)
 {

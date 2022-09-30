@@ -3,7 +3,7 @@ from threading import Thread
 
 
 
-def client_program(host=None, port=1035):
+def client_program(host=None, port=1043):
 
     if host is None:
         host = socket.gethostname()
