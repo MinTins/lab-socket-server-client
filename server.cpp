@@ -14,8 +14,6 @@ Task: Користувач на клієнті вгадує 4-значне ці�
     4-х значних чисел в заданій кількості.
 */
 
-// Thanks to https://github.com/syncopika/winsock-server-client
-
 #define _WIN32_WINNT 0x501 // fix some error
 
 #include <winsock2.h>
@@ -130,6 +128,7 @@ void commandController(SOCKET &s, char *clientText, std::unordered_map<SOCKET, s
     2 - Start/Restart.
 
     Send:
+        get - get status code
         s - start/restart
         fn - finish
         gup - give up
@@ -144,6 +143,7 @@ void commandController(SOCKET &s, char *clientText, std::unordered_map<SOCKET, s
         ws-fn - win success / finished game
         tf_## - try fail / # - number of right / # - in right place
         tf_l - try fail / limit
+        cc_#### - curent code (get)
         unxp_cm - unexpected command
     */
 
